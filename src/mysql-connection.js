@@ -9,12 +9,16 @@ var db = mysql.createConnection({
 });
 
 // Queries
-var createTableQuery = "CREATE TABLE IF NOT EXISTS adresses (id INT AUTO_INCREMENT PRIMARY KEY)";
+var tableName = "addresses";
+var createTableQuery = "CREATE TABLE IF NOT EXISTS " + tableName + " (id INT AUTO_INCREMENT PRIMARY KEY)";
 
+/*
+    Database initialization START
+*/
 function tablesCreator(ok, notOk) {
     db.query(createTableQuery, function (err, result) {
         if (err) {notOk(); throw err;}
-        console.log("Tables created: ");
+        console.log("Table " + tableName + " created. Result: ");
         console.log(result);
         ok();
     })
@@ -27,10 +31,19 @@ function dbConnection(ok, notOk) {
         ok();
     });
 }
+/*
+    Database initialization END
+*/
 
+
+
+
+// Main app initialization function
 function initChain() {
     var prom1 = new Promise(function(ok, notOk) {dbConnection(ok, notOk)});
     var prom2 = new Promise(function(ok, notOk) {tablesCreator(ok, notOk)});
+
+
     return Promise.all([prom1, prom2]);
 }
 
