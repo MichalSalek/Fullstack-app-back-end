@@ -1,6 +1,6 @@
 import mysql from 'mysql';
 import express from 'express';
-import path from 'path';
+
 import homeDirHTML from './index.html';
 
 // Express init
@@ -16,12 +16,16 @@ const db = mysql.createConnection({
 
 // Queries
 const tableName = "addresses";
-const CREATE_TABLE = "CREATE TABLE IF NOT EXISTS " + tableName + " (id INT AUTO_INCREMENT PRIMARY KEY)";
+const columnName = "addresses_paths";
+const CREATE_TABLE = `CREATE TABLE IF NOT EXISTS ${tableName} (id INT AUTO_INCREMENT PRIMARY KEY, ${columnName} varchar(255));`;
+const FETCH_BTC_ADDRESSES = "SELECT * FROM addresses;";
+const INSERT_ADDRESS = `INSERT INTO ${tableName} (${columnName}) VALUES`;
 
 // Error handler
 const rejectAndReturn = (error, reject) => {
     if (error) {
-        reject();
+        console.error(error); // ERASE IT ON PRODUCTION BUILD
+        reject && reject();
         throw error;
     }
 };
@@ -32,7 +36,7 @@ const rejectAndReturn = (error, reject) => {
 const tablesCreator = (ok, notOk) => {
     db.query(CREATE_TABLE, (err) => {
         rejectAndReturn(err, notOk);
-        console.log(`Table "${tableName}" created. \n`);
+        console.log(`Table "${tableName}" with column "${columnName}" created. \n`);
         ok();
     })
 };
@@ -61,8 +65,37 @@ const initDB = () => {
     return Promise.all([prom1, prom2]);
 };
 
-// Front and Database paths
+// Database routes
+const dbRoutesInit = () => {
+    globalApp.get('/addresses', (req, res) => {
+        db.query(FETCH_BTC_ADDRESSES, (err, result) => {
+            if (err) {
+                console.error(err); // ERASE IT ON PRODUCTION BUILD
+                return rejectAndReturn(err);
+            } else {
+                return res.status(200).json({
+                    data: result
+                })
+            }
+        })
+    });
 
+    globalApp.get('/addresses/add', (req, res) => {
+        const {address} = req.query;
+        db.query(`${INSERT_ADDRESS} ("${String(address)}");`, (err) => {
+            if (err) {
+                console.error(err); // ERASE IT ON PRODUCTION BUILD
+                return rejectAndReturn(err);
+            } else {
+                return res.send('Address added successfully!')
+            }
+        })
+    });
+
+    globalApp.get('/teapot', (req, res) => {
+        return res.status(418).send("<h1 style='color: #801a08'>418: <em>I am teapot</em></h1>");
+    });
+};
 
 // Server init
 const serverAPI = () => {
@@ -78,5 +111,6 @@ const serverAPI = () => {
 // Init chain
 initDB().then(() => {
     console.log("DB ready, preparing server... \n");
+    dbRoutesInit();
     serverAPI();
 });
