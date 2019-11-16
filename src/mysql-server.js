@@ -30,18 +30,17 @@ const rejectAndReturn = (error, reject) => {
     Database initialization START
 */
 const tablesCreator = (ok, notOk) => {
-    db.query(CREATE_TABLE, function (err, result) {
+    db.query(CREATE_TABLE, (err) => {
         rejectAndReturn(err, notOk);
-        console.log("Table " + tableName + " created. Result: ");
-        console.log(result);
+        console.log(`Table "${tableName}" created. \n`);
         ok();
     })
 };
 
 const dbConnection = (ok, notOk) => {
-    db.connect(function (err) {
+    db.connect((err) => {
         rejectAndReturn(err, notOk);
-        console.log("Connected!");
+        console.log("Connected! \n");
         ok();
     });
 };
@@ -50,32 +49,34 @@ const dbConnection = (ok, notOk) => {
 */
 
 // Main app initialization function
-function initDB() {
-    const prom1 = new Promise(function (ok, notOk) {
+const initDB = () => {
+    console.log("Booting... \n");
+    console.log("Let's try to connect to db... \n");
+    const prom1 = new Promise((ok, notOk) => {
         dbConnection(ok, notOk)
     });
-    const prom2 = new Promise(function (ok, notOk) {
+    const prom2 = new Promise((ok, notOk) => {
         tablesCreator(ok, notOk)
     });
     return Promise.all([prom1, prom2]);
-}
+};
+
+// Front and Database paths
+
 
 // Server init
-function serverAPI() {
+const serverAPI = () => {
     globalApp.get('/', (req, res) => {
         res.send(homeDirHTML);
-        console.log(req.query)
     });
 
-    globalApp.listen(4321, () => {
-        console.log('o servidor está rodando na porta 4321');
+    globalApp.listen(4100, () => {
+        console.log('The server is now available on port 4100. \n');
     });
-}
+};
 
 // Init chain
-initDB().then(function () {
-    console.log("DB ready, preparing server...");
+initDB().then(() => {
+    console.log("DB ready, preparing server... \n");
     serverAPI();
 });
-
-module.exports.dbConnection = dbConnection;

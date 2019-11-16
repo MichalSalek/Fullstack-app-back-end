@@ -10,8 +10,8 @@ export default `
 </head>
 <body>
 <h1>This is just REST API domain</h1>
-<article style="padding: 5vw; color: #333; font-size: 1.5rem; letter-spacing: 0.1rem">Read a docs for more information:
-    <a href="https://github.com/MichalSalek/Fullstack-app-ReactJS-NodeJS-MySQL" alt="Github repository">README.md</a>
+<article style="padding: 5vw; color: #777; font-size: 1.5rem; letter-spacing: 0.1rem">Read a docs for more information:
+    <a style="text-decoration: none; color: #77D; font-weight: 600" href="https://github.com/MichalSalek/Fullstack-app-ReactJS-NodeJS-MySQL" alt="Github repository">README.md</a>
 </article>
 </body>
 </html>
