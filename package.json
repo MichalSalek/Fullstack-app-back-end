@@ -13,7 +13,7 @@
     "build": "rimraf dist/ && babel ./ --out-dir dist/ --ignore ./node_modules,./.babelrc,./package.json,./npm-debug.log --copy-files",
     "start": "npm run build && node dist/index.js",
     "dev": "nodemon --exec babel-node index.js",
-    "update": "../update-subrepos.sh"
+    "update": "cd .. && bash ./update-subrepos.sh"
   },
   "dependencies": {
     "express": "^4.17.1",
