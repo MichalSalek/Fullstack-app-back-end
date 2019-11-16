@@ -1,40 +1,41 @@
 var mysql = require('mysql');
 
+// DB main connection
 var db = mysql.createConnection({
     host: "localhost",
     user: "root",
     password: "toor",
-    database: "wallets"
+    database: "btc"
 });
 
-// function dbCreator() {
-//     var query = "CREATE DATABASE IF NOT EXISTS wallets";
-//     db.query(query, function (err, result) {
-//         if (err) throw err;
-//         console.dir("Database created: ");
-//         console.dir(result);
-//         db = mysql.createConnection({
-//             host: "localhost",
-//             user: "root",
-//             password: "toor",
-//             database: "wallets"
-//         });
-//         console.log(db);
-//     });
-// }
+// Queries
+var createTableQuery = "CREATE TABLE IF NOT EXISTS adresses (id INT AUTO_INCREMENT PRIMARY KEY)";
 
-function tablesCreator() {
-    var query = "CREATE TABLE IF NOT EXISTS wallet1";
-    db.query(query, function (err, result) {
-        if (err) throw err;
+function tablesCreator(ok, notOk) {
+    db.query(createTableQuery, function (err, result) {
+        if (err) {notOk(); throw err;}
         console.log("Tables created: ");
-        console.log(result)
+        console.log(result);
+        ok();
     })
 }
 
-db.connect(function (err) {
-    if (err) throw err;
-    console.log("Connected!");
-    // dbCreator();
-    tablesCreator();
-});
+function dbConnection(ok, notOk) {
+    db.connect(function (err) {
+        if (err) {notOk(); throw err;}
+        console.log("Connected!");
+        ok();
+    });
+}
+
+function initChain() {
+    var prom1 = new Promise(function(ok, notOk) {dbConnection(ok, notOk)});
+    var prom2 = new Promise(function(ok, notOk) {tablesCreator(ok, notOk)});
+    return Promise.all([prom1, prom2]);
+}
+
+// Init chain
+initChain().then(function () {
+    console.log("Chain ready")});
+
+module.exports.dbConnection = dbConnection;
