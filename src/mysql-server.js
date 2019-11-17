@@ -1,10 +1,12 @@
 import mysql from 'mysql';
 import express from 'express';
+import cors from 'cors';
 
 import homeDirHTML from './index.html';
 
 // Express init
 const globalApp = express();
+globalApp.use(cors());
 
 // DB main connection
 const db = mysql.createConnection({
