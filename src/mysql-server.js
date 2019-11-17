@@ -1,13 +1,17 @@
 import mysql from 'mysql';
+
 const globalApp = require("express")();
 const server = require('http').Server(globalApp);
 import cors from 'cors';
+
 const io = require("socket.io")(server);
 
 import homeDirHTML from './index.html';
 
+// io CORS
 io.origins('http://localhost:3000/');
 
+// CORS
 globalApp.use(cors());
 
 // Names
@@ -23,48 +27,6 @@ const dbConfig = {
 };
 const db = mysql.createConnection(dbConfig);
 
-/*
-    MySQL listener START
-*/
-// Creating POOL MySQL connection.
-const poolSQL = mysql.createPool(dbConfig);
-
-const add_status = function (status, callback) {
-    poolSQL.getConnection(function (err, connection) {
-        if (err) {
-            callback(false);
-            return;
-        }
-        // connection.query("INSERT INTO `status` (`s_text`) VALUES ('" + status + "')", function (err, rows) {
-        //     connection.release();
-        //     if (!err) {
-        //         callback(true);
-        //     }
-        // });
-        connection.on('error', function (err) {
-            callback(false);
-            return null;
-        });
-    });
-};
-
-io.on('connection', function (socket) {
-    console.log("A user is connected");
-    socket.on('status added', function (status) {
-        add_status(status, function (res) {
-            if (res) {
-                io.emit('refresh feed', status);
-            } else {
-                io.emit('error');
-            }
-        });
-    });
-});
-
-/*
-    MySQL listener END
-*/
-
 // Queries
 const CREATE_TABLE = `CREATE TABLE IF NOT EXISTS ${tableName} (id INT AUTO_INCREMENT PRIMARY KEY, ${columnName} varchar(255));`;
 const FETCH_BTC_ADDRESSES = "SELECT * FROM addresses;";
@@ -78,6 +40,44 @@ const rejectAndReturn = (error, reject) => {
         throw error;
     }
 };
+
+/*
+    MySQL listener START
+*/
+// Creating POOL MySQL connection.
+const poolSQL = mysql.createPool(dbConfig);
+
+const add_status = function (status, callback) {
+    poolSQL.getConnection(function (err, connection) {
+        if (err) {
+            callback(false);
+            return;
+        }
+        console.log("connected io -> DB");
+        db.query(FETCH_BTC_ADDRESSES, (err, result) => {
+            if (err) {
+                console.error(err); // ERASE IT ON PRODUCTION BUILD
+                return rejectAndReturn(err);
+            } else {
+                io.emit('refresh addresses', result);
+            }
+        });
+
+        connection.on('error', (err) => rejectAndReturn(err));
+    });
+};
+
+io.on('connection', function (socket) {
+    console.log("A user is connected");
+    socket.on('address added', (status) => {
+        add_status(status);
+    });
+
+});
+
+/*
+    MySQL listener END
+*/
 
 /*
     Database initialization START
@@ -114,19 +114,23 @@ const initDB = () => {
     return Promise.all([prom1, prom2]);
 };
 
+const getAddressesQuery = (req, res) => {
+    return db.query(FETCH_BTC_ADDRESSES, (err, result) => {
+        if (err) {
+            console.error(err); // ERASE IT ON PRODUCTION BUILD
+            return rejectAndReturn(err);
+        } else {
+            return res.status(200).json({
+                data: result
+            })
+        }
+    })
+};
+
 // Database routes
 const dbRoutesInit = () => {
     globalApp.get('/addresses', (req, res) => {
-        db.query(FETCH_BTC_ADDRESSES, (err, result) => {
-            if (err) {
-                console.error(err); // ERASE IT ON PRODUCTION BUILD
-                return rejectAndReturn(err);
-            } else {
-                return res.status(200).json({
-                    data: result
-                })
-            }
-        })
+        getAddressesQuery(req, res);
     });
 
     globalApp.get('/addresses/add', (req, res) => {
