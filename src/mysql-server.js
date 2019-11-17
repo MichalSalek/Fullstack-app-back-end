@@ -1,24 +1,71 @@
 import mysql from 'mysql';
-import express from 'express';
+const globalApp = require("express")();
+const server = require('http').Server(globalApp);
 import cors from 'cors';
+const io = require("socket.io")(server);
 
 import homeDirHTML from './index.html';
 
-// Express init
-const globalApp = express();
+io.origins('http://localhost:3000/');
+
 globalApp.use(cors());
 
+// Names
+const tableName = "addresses";
+const columnName = "addresses_paths";
+
 // DB main connection
-const db = mysql.createConnection({
+const dbConfig = {
     host: "localhost",
     user: "root",
     password: "toor",
     database: "btc"
+};
+const db = mysql.createConnection(dbConfig);
+
+/*
+    MySQL listener START
+*/
+// Creating POOL MySQL connection.
+const poolSQL = mysql.createPool(dbConfig);
+
+const add_status = function (status, callback) {
+    poolSQL.getConnection(function (err, connection) {
+        if (err) {
+            callback(false);
+            return;
+        }
+        // connection.query("INSERT INTO `status` (`s_text`) VALUES ('" + status + "')", function (err, rows) {
+        //     connection.release();
+        //     if (!err) {
+        //         callback(true);
+        //     }
+        // });
+        connection.on('error', function (err) {
+            callback(false);
+            return null;
+        });
+    });
+};
+
+io.on('connection', function (socket) {
+    console.log("A user is connected");
+    socket.on('status added', function (status) {
+        add_status(status, function (res) {
+            if (res) {
+                io.emit('refresh feed', status);
+            } else {
+                io.emit('error');
+            }
+        });
+    });
 });
 
+/*
+    MySQL listener END
+*/
+
 // Queries
-const tableName = "addresses";
-const columnName = "addresses_paths";
 const CREATE_TABLE = `CREATE TABLE IF NOT EXISTS ${tableName} (id INT AUTO_INCREMENT PRIMARY KEY, ${columnName} varchar(255));`;
 const FETCH_BTC_ADDRESSES = "SELECT * FROM addresses;";
 const INSERT_ADDRESS = `INSERT INTO ${tableName} (${columnName}) VALUES`;
@@ -105,7 +152,7 @@ const serverAPI = () => {
         res.send(homeDirHTML);
     });
 
-    globalApp.listen(4100, () => {
+    server.listen(4100, () => {
         console.log('The server is now available on port 4100. \n');
     });
 };
