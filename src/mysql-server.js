@@ -42,18 +42,30 @@ const rejectAndReturn = (error, reject) => {
 };
 
 /*
-    MySQL listener START
+    WebSocket START
 */
 // Creating POOL MySQL connection.
 const poolSQL = mysql.createPool(dbConfig);
 
-const add_status = function (status, callback) {
+const startWebSocket = () => {
+    io.on('connection', function (socket) {
+        console.log("A user is connected");
+        socket.on('address added', (address) => {
+            addAddressWS(address);
+        });
+    });
+};
+
+const addAddressWS = function (address, callback) {
     poolSQL.getConnection(function (err, connection) {
         if (err) {
+            rejectAndReturn(err);
             callback(false);
             return;
         }
+
         console.log("connected io -> DB");
+
         db.query(FETCH_BTC_ADDRESSES, (err, result) => {
             if (err) {
                 console.error(err); // ERASE IT ON PRODUCTION BUILD
@@ -66,17 +78,8 @@ const add_status = function (status, callback) {
         connection.on('error', (err) => rejectAndReturn(err));
     });
 };
-
-io.on('connection', function (socket) {
-    console.log("A user is connected");
-    socket.on('address added', (status) => {
-        add_status(status);
-    });
-
-});
-
 /*
-    MySQL listener END
+    WebSocket END
 */
 
 /*
@@ -164,6 +167,7 @@ const serverAPI = () => {
 // Init chain
 initDB().then(() => {
     console.log("DB ready, preparing server... \n");
+    startWebSocket();
     dbRoutesInit();
     serverAPI();
 });
